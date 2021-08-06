@@ -1,6 +1,8 @@
 from __future__ import division
 
 import math
+import os
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,7 +26,7 @@ def angle_error(y_true, y_pred):
     as a binary vector.
     """
     diff = angle_difference(K.argmax(y_true), K.argmax(y_pred))
-    return K.mean(K.cast(K.abs(diff), K.floatx()))
+    return K.mean(K.cast(K.abs(diff), K.floatx()))*5
 
 
 def angle_error_regression(y_true, y_pred):
@@ -269,19 +271,22 @@ class RotNetDataGenerator(Iterator):
         # create array to hold the labels
         batch_y = np.zeros(len(index_array), dtype='float32')
 
+
         # iterate through the current batch
         for i, j in enumerate(index_array):
             if self.filenames is None:
                 image = self.images[j]
             else:
                 is_color = int(self.color_mode == 'rgb')
-                image = cv2.imread(self.filenames[j], is_color)
+                # print(self.filenames)
+                image = cv2.imread(self.filenames[j])
+                # 出错了所有先注释
                 if is_color:
                     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
             if self.rotate:
                 # get a random angle
-                rotation_angle = np.random.randint(360)
+                rotation_angle = np.random.randint(72)*5
             else:
                 rotation_angle = 0
 
@@ -301,12 +306,13 @@ class RotNetDataGenerator(Iterator):
             # store the image and label in their corresponding batches
             batch_x[i] = rotated_image
             batch_y[i] = rotation_angle
+            # print(batch_y)
 
         if self.one_hot:
             # convert the numerical labels to binary labels
-            batch_y = to_categorical(batch_y, 360)
+            batch_y = to_categorical(batch_y/5, 72)
         else:
-            batch_y /= 360
+            batch_y /= 72
 
         # preprocess input images
         if self.preprocess_func:
@@ -352,7 +358,7 @@ def display_examples(model, input, num_images=5, size=None, crop_center=False,
     x = []
     y = []
     for image in images:
-        rotation_angle = np.random.randint(360)
+        rotation_angle = np.random.randint(72)*5
         rotated_image = generate_rotated_image(
             image,
             rotation_angle,
@@ -369,7 +375,7 @@ def display_examples(model, input, num_images=5, size=None, crop_center=False,
     if x.ndim == 3:
         x = np.expand_dims(x, axis=3)
 
-    y = to_categorical(y, 360)
+    y = to_categorical(y/5, 72)
 
     x_rot = np.copy(x)
 
